@@ -1,0 +1,61 @@
+# docker run --name=rtsp-server --env=RTSP_PROTOCOLS=tcp -p 1935:1935 -p 8554:8554 -p 8888:8888 --restart=always --detach=true aler9/rtsp-simple-server
+# docker run --name=ffmpeg --volume=/home/ivan/testsrc.mpg:/testsrc.mpg --link rtsp-server --restart=always --detach=true jrottenberg/
+# ffmpeg -re -stream_loop -1 -i /testsrc.mpg -c copy -f rtsp rtsp://rtsp-server:8554/mystream
+
+version: "3.3"
+services:
+  rtsp-server:
+    ports:
+      - "1935:1935"
+      - "8554:8554"
+      - "8888:8888"
+    environment:
+      - RTSP_PROTOCOLS=tcp
+    image: aler9/rtsp-simple-server
+
+  prepare-input-files:
+    image: python:slim-bullseye
+    working_dir: /app
+    volumes:
+      - ./samples:/tmp/
+      - ./scripts/list_input_files.py:/app/list_input_files.py
+    command: python list_input_files.py /tmp/
+
+  CAM_001:
+    image: linuxserver/ffmpeg:version-4.4-cli
+    links:
+      - "rtsp-server:rtsp-server"
+    depends_on:
+      prepare-input-files:
+        condition: service_completed_successfully
+      rtsp-server:
+        condition: service_started
+    volumes:
+      - ./samples/CAM_001:/tmp/
+    command: -re -stream_loop -1 -f concat -i /tmp/concat.txt -c copy -f rtsp rtsp://rtsp-server:8554/CAM_001
+
+  CAM_002:
+    image: linuxserver/ffmpeg:version-4.4-cli
+    links:
+      - "rtsp-server:rtsp-server"
+    depends_on:
+      prepare-input-files:
+        condition: service_completed_successfully
+      rtsp-server:
+        condition: service_started
+    volumes:
+      - ./samples/CAM_002:/tmp/
+    command: -re -stream_loop -1 -f concat -i /tmp/concat.txt -c copy -f rtsp rtsp://rtsp-server:8554/CAM_002
+
+  CAM_SLOT_001:
+    image: linuxserver/ffmpeg:version-4.4-cli
+    links:
+      - "rtsp-server:rtsp-server"
+    depends_on:
+      prepare-input-files:
+        condition: service_completed_successfully
+      rtsp-server:
+        condition: service_started
+    volumes:
+      - ./samples/CAM_SLOT_001:/tmp/
+    command: -re -stream_loop -1 -f concat -i /tmp/concat.txt -c copy -f rtsp rtsp://rtsp-server:8554/CAM_SLOT_001
