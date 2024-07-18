@@ -59,3 +59,31 @@ services:
     volumes:
       - ./samples/CAM_SLOT_001:/tmp/
     command: -re -stream_loop -1 -f concat -i /tmp/concat.txt -c copy -f rtsp rtsp://rtsp-server:8554/CAM_SLOT_001
+
+  hls_stream:
+    command: [ "python", "src/hls-stream/api.py" ]
+    image: hls-stream:v0.1.0
+    build:
+      context: ./hls-server/deployment/hls-stream
+      dockerfile: Dockerfile
+    container_name: hls_stream1
+    working_dir: /app3
+    env_file:
+      - ./hls-server/.env
+    restart: unless-stopped
+    volumes:
+      - ./hls-server/src/hls-stream:/app3/src/hls-stream/
+      - ./hls-server/metadata:/app3/metadata/
+      - ./hls-server/stream:/app3/stream/
+      - ./hls-server/templates:/app3/templates/
+      - "/etc/timezone:/etc/timezone:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+
+    # network_mode: "host"
+    ports:
+      - 3597:3597
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    tty: true
